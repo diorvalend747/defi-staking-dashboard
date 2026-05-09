@@ -1,0 +1,28 @@
+{
+  "name": "contracts",
+  "version": "1.0.0",
+  "description": "DeFi Staking Dashboard smart contracts - Hardhat TypeScript project",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx hardhat test",
+    "compile": "npx hardhat compile",
+    "node": "npx hardhat node",
+    "deploy:local": "npx hardhat run ignition/modules/Lock.ts --network localhost",
+    "deploy:testnet": "npx hardhat run ignition/modules/Lock.ts --network base-sepolia"
+  },
+  "keywords": ["hardhat", "ethereum", "solidity", "typescript", "base-sepolia"],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.2",
+    "@typechain/ethers-v6": "^0.5.1",
+    "@typechain/hardhat": "^9.1.0",
+    "dotenv": "^17.4.2",
+    "ethers": "^6.1.0",
+    "hardhat": "^2.22.19",
+    "ts-node": "^10.9.2",
+    "typechain": "^8.3.2",
+    "typescript": "^6.0.3"
+  }
+}

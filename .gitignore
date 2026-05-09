@@ -1,0 +1,45 @@
+# ============================================
+# GLOBAL IGNORES
+# ============================================
+
+# All .env files anywhere in the project
+**/.env
+**/.env.*
+**/.env.example
+
+# All node_modules anywhere
+**/node_modules/
+
+# OS/IDE
+.DS_Store
+.vscode/
+.idea/
+
+# ============================================
+# CONTRACTS (Hardhat)
+# ============================================
+
+contracts/artifacts/
+contracts/cache/
+contracts/typechain/
+contracts/typechain-types/
+contracts/coverage/
+contracts/.solc/
+contracts/gas-report.txt
+
+# ============================================
+# BACKEND (Express/Node)
+# ============================================
+
+backend/dist/
+backend/build/
+backend/*.log
+backend/logs/
+
+# ============================================
+# FRONTEND (Next.js)
+# ============================================
+
+frontend/.next/
+frontend/out/
+frontend/.env.local
