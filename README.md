@@ -12,7 +12,3 @@
 │ Base Sepolia │ │ Base Sepolia │
 │ Smart Contract│ │ (Alchemy RPC)│
 └──────────────┘ └──────────────┘
-
-# Run this before every git push
-
-git grep -n "0x" -- "_.ts" "_.tsx" "\*.js"
