@@ -1,0 +1,143 @@
+// This is your Prisma schema file.
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// ============================================
+// What is Prisma?
+// ============================================
+// Prisma is an ORM (Object-Relational Mapper) for Node.js and TypeScript.
+// Think of it as a translator between your JavaScript/TypeScript code and
+// your PostgreSQL database.
+//
+// Instead of writing raw SQL like:
+//   SELECT * FROM users WHERE email = 'alice@example.com';
+//
+// You write clean, type-safe JavaScript:
+//   const user = await prisma.user.findUnique({ where: { email: 'alice@example.com' } });
+//
+// Benefits:
+//   - Type-safe: Prisma generates TypeScript types from this schema file.
+//                If you mistype a field name, TypeScript catches it at compile time.
+//   - Auto-completion: Your IDE knows exactly what fields each table has.
+//   - Migrations: Prisma can automatically create and run database migrations
+//                 when you change this schema.
+//   - Query optimization: Prisma builds efficient SQL under the hood.
+//
+// How to use:
+//   1. Edit this schema file to define your data model (tables, columns, relations).
+//   2. Run `npx prisma migrate dev` to sync the database with this schema.
+//   3. Run `npx prisma generate` to generate the TypeScript client.
+//   4. Import `prisma` in your code and start querying!
+// ============================================
+
+// Tells Prisma to generate the TypeScript client from this schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Connects to PostgreSQL using the DATABASE_URL from your .env file
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Why store blockchain events in a database?
+// ============================================
+// The blockchain is a public ledger — anyone can read it. So why copy events
+// into a database? Because reading directly from the chain is SLOW and
+// expensive for dashboards.
+//
+// Direct blockchain queries:
+//   - You can only fetch data by block number or transaction hash
+//   - Filtering (e.g. "show me all stakes from this user") requires scanning
+//     thousands of blocks
+//   - Pagination is nearly impossible
+//   - Each query costs RPC credits (Alchemy/Infura charge by request)
+//
+// Database queries:
+//   - Instant filtering: `WHERE userAddress = '0xabc...' AND type = 'STAKE'`
+//   - Fast sorting and pagination for tables/charts
+//   - No RPC costs — data lives in your own Postgres instance
+//   - You can JOIN with other tables (users, rewards, etc.)
+//
+// How it works:
+//   1. An indexer script listens for blockchain events (Staked, Withdrawn, etc.)
+//   2. When an event fires, the script inserts a row into StakeEvent
+//   3. Your frontend queries the database — fast, cheap, and flexible
+//
+// Think of it like this: the blockchain is the "source of truth" (what
+// actually happened), and the database is the "read-optimized cache"
+// (what your dashboard displays).
+// ============================================
+
+// An enum defines a fixed set of allowed values.
+// We use it for the event type so only valid values can be stored.
+enum EventType {
+  STAKE
+  WITHDRAW
+  CLAIM
+}
+
+// ============================================
+// User Model
+// ============================================
+// Represents a user who connects their wallet to the dashboard.
+// The nonce is a random string used for "Sign-In with Ethereum" (SIWE)
+// authentication — the user signs the nonce with their wallet to prove
+// they own the address.
+model User {
+  id            String   @id @default(uuid())
+  walletAddress String   @unique @map("wallet_address")
+  // A random nonce for wallet-based login (SIWE).
+  // The user signs this nonce with their private key to prove ownership.
+  nonce         String   @default(uuid())
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("users")
+}
+
+// ============================================
+// StakeEvent Model
+// ============================================
+// Stores every on-chain staking event (stake, withdraw, claim) in a format
+// optimized for fast dashboard queries.
+//
+// We store the raw blockchain data here so the frontend can:
+//   - Paginate through thousands of events instantly
+//   - Filter by user, event type, or date range
+//   - Show charts and analytics without hammering the RPC provider
+model StakeEvent {
+  id          String    @id @default(uuid())
+  // The transaction hash on the blockchain — unique so we never store
+  // the same event twice (idempotency).
+  txHash      String    @unique @map("tx_hash")
+  // The wallet address that triggered this event.
+  // Not a foreign key to User because the user might not be registered
+  // in our database yet — they just connected their wallet.
+  userAddress String    @map("user_address")
+  // What kind of event this was: STAKE, WITHDRAW, or CLAIM.
+  // Using an enum guarantees only valid values are stored.
+  type        EventType
+  // The token amount, stored as a string to handle Ethereum's
+  // 256-bit integers (way larger than JavaScript's safe number limit).
+  // Example: "1000000000000000000" = 1 token with 18 decimals.
+  amount      String
+  // The block number where this event was mined.
+  // Stored as BigInt because block numbers can exceed JavaScript's
+  // safe integer limit (~9 quadrillion).
+  blockNumber BigInt    @map("block_number")
+  // The timestamp when the block was mined (from the blockchain).
+  // This is the "real" event time, not when we inserted it.
+  timestamp   DateTime
+  // When this row was inserted into our database.
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  // Index for fast filtering: querying events by user + type is common
+  @@index([userAddress, type])
+  // Index for fast sorting: dashboards often show "most recent events first"
+  @@index([timestamp])
+  // Index for fast block-based queries: "show me events from block X to Y"
+  @@index([blockNumber])
+
+  @@map("stake_events")
+}
