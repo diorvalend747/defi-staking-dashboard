@@ -19,6 +19,14 @@ const PRIVATE_KEY = process.env.PRIVATE_KEY || "";
 // Get one free at: https://basescan.org/register (use the same account for sepolia.basescan.org)
 const BASESCAN_API_KEY = process.env.BASESCAN_API_KEY || "";
 
+// Choose the best available RPC endpoint for Base Sepolia:
+// 1. Alchemy (fastest, most reliable) — requires ALCHEMY_API_KEY in .env
+// 2. Public RPC (free, no signup) — works fine for testnet, just slower
+const baseSepoliaRpc =
+  ALCHEMY_API_KEY !== ""
+    ? `https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`
+    : "https://sepolia.base.org";
+
 const config: HardhatUserConfig = {
   // Solidity compiler version
   // Hardhat will download and use this automatically
@@ -33,11 +41,12 @@ const config: HardhatUserConfig = {
     },
 
     // Base Sepolia testnet configuration
-    // This is where you deploy and test with fake ETH
-    "base-sepolia": {
-      url: `https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
+    // We use the name "baseSepolia" because hardhat-verify already knows
+    // the explorer URLs for this network (chainId 84532).
+    baseSepolia: {
+      url: baseSepoliaRpc,
       accounts: PRIVATE_KEY !== "" ? [PRIVATE_KEY] : [],
-      chainId: 84532, // Base Sepolia chain ID
+      chainId: 84532,
     },
   },
 
@@ -45,35 +54,20 @@ const config: HardhatUserConfig = {
   // This is what lets you run `npx hardhat verify` and automatically
   // publish your source code to sepolia.basescan.org
   etherscan: {
-    apiKey: {
-      // You MUST provide a real Basescan API key for verification to work.
-      // "PLACEHOLDER_STRING" will fail — replace it in your .env file.
-      // Sign up free at: https://basescan.org/register
-      "base-sepolia": BASESCAN_API_KEY,
-    },
-    customChains: [
-      {
-        network: "base-sepolia",
-        chainId: 84532,
-        urls: {
-          apiURL: "https://api-sepolia.basescan.org/api",
-          browserURL: "https://sepolia.basescan.org",
-        },
-      },
-    ],
-  },
-
-  // Sourcify is a free, open-source alternative to Etherscan/Basescan.
-  // It does NOT require an API key — great for testnets!
-  // You can use it by adding `--via-sourcify` to your verify command.
-  sourcify: {
-    enabled: true,
+    // Use a single string API key to trigger V2 mode.
+    // The plugin will automatically route to the correct explorer
+    // based on the network's chain ID.
+    apiKey: BASESCAN_API_KEY,
   },
 
   // TypeChain configuration — auto-generates TypeScript types from your contracts
   typechain: {
     outDir: "typechain-types",
     target: "ethers-v6",
+  },
+
+  sourcify: {
+    enabled: true,
   },
 };
 

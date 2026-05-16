@@ -15,7 +15,7 @@ import path from "path";
  * Examples:
  *   npx hardhat run scripts/deploy.ts              (default in-memory network)
  *   npx hardhat run scripts/deploy.ts --network localhost
- *   npx hardhat run scripts/deploy.ts --network base-sepolia
+ *   npx hardhat run scripts/deploy.ts --network baseSepolia
  */
 
 async function main() {

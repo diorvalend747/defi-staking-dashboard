@@ -83,7 +83,7 @@ This will:
 Make sure your `.env` file is set up, then:
 
 ```bash
-npx hardhat run scripts/deploy.ts --network base-sepolia
+npx hardhat run scripts/deploy.ts --network baseSepolia
 ```
 
 Your contract will be deployed to the Base Sepolia testnet. You can view it on [Base Sepolia Explorer](https://sepolia.basescan.org/).
@@ -114,7 +114,7 @@ contracts/
 | `npx hardhat compile` | Compile contracts |
 | `npx hardhat run scripts/deploy.ts --network localhost` | Deploy to local network |
 | `npx hardhat run scripts/deploy.ts --network base-sepolia` | Deploy to Base Sepolia |
-| `npx hardhat verify --network base-sepolia <CONTRACT_ADDRESS>` | Verify contract on explorer |
+| `npx hardhat verify --network baseSepolia <CONTRACT_ADDRESS>` | Verify contract on explorer |
 
 ---
 
