@@ -10,7 +10,7 @@ dotenv.config();
 
 // Import route handlers
 // Routes are organized into separate files so the codebase stays clean as it grows
-import healthRoutes from "./routes/health";
+import { healthRoutes, authRoutes, stakeRoutes } from "./routes";
 
 // ============================================
 // Create Express app and HTTP server
@@ -70,9 +70,14 @@ app.use(express.json());
 // Health check — simple endpoint to confirm the server is alive
 app.use("/", healthRoutes);
 
-// Future routes (commented out until you implement them):
-// app.use("/api/users", userRoutes);
-// app.use("/api/stakes", stakeRoutes);
+// Authentication routes — wallet-based login (SIWE)
+app.use("/auth", authRoutes);
+
+// Staking data routes
+// /api/history is protected — only authenticated users can view their history
+app.use("/api", stakeRoutes);
+
+
 
 // ============================================
 // Error handling
