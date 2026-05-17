@@ -2,9 +2,9 @@
 
 import { WagmiProvider } from "wagmi"
 import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit"
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { QueryClientProvider } from "@tanstack/react-query"
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
-import { useState } from "react"
+import { queryClient } from "@/hooks/use-api"
 import { config } from "@/lib/wagmi"
 
 // Import RainbowKit CSS for the connect modal and wallet buttons.
@@ -26,18 +26,6 @@ import "@rainbow-me/rainbowkit/styles.css"
  * across hot-reloads in development.
  */
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            retry: 1,
-            refetchOnWindowFocus: false,
-          },
-        },
-      })
-  )
-
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>

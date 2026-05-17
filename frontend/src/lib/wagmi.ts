@@ -27,6 +27,18 @@ export const stakingPoolContract = {
 } as const
 
 /**
+ * Mock ERC-20 token contract configuration.
+ *
+ * This is the staking token that users must first approve before depositing
+ * into the StakingPool. We export it alongside the pool contract so that
+ * approval and staking transactions share a single source of truth.
+ */
+export const mockTokenContract = {
+  address: contractInfo.contracts.MockToken.address as `0x${string}`,
+  abi: contractInfo.contracts.MockToken.abi,
+} as const
+
+/**
  * Why we tell wagmi which blockchain network to talk to:
  *
  * A blockchain is a distributed network of nodes, and each network (Ethereum
