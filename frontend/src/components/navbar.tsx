@@ -4,6 +4,8 @@ import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { ConnectButton } from "@/components/ConnectButton"
 import { usePathname } from "next/navigation"
+import { motion } from "framer-motion"
+import { Layers } from "lucide-react"
 
 const navLinks = [
   { href: "/", label: "Dashboard" },
@@ -11,35 +13,46 @@ const navLinks = [
   { href: "/rewards", label: "Rewards" },
 ]
 
-/**
- * Global navigation bar displayed on every page.
- *
- * Uses Next.js Link for client-side navigation and highlights the
- * active route based on the current pathname.
- */
 export function Navbar() {
   const pathname = usePathname()
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center">
-        <div className="mr-4 flex">
-          <Link href="/" className="mr-6 flex items-center space-x-2">
-            <span className="font-bold text-lg tracking-tight">DeFi Dash</span>
+    <motion.header
+      initial={{ y: -20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="sticky top-0 z-50 w-full border-b border-slate-800/60 bg-[#020617]/80 backdrop-blur-xl"
+    >
+      <div className="container flex h-16 items-center">
+        <div className="mr-4 flex items-center gap-2">
+          <Link href="/" className="mr-6 flex items-center gap-2.5 group">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-500/40 transition-shadow duration-300">
+              <Layers className="h-4 w-4 text-white" />
+            </div>
+            <span className="font-bold text-lg tracking-tight text-gradient">
+              DeFi Dash
+            </span>
           </Link>
-          <nav className="flex items-center gap-4 text-sm font-medium">
+          <nav className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "transition-colors hover:text-foreground/80",
+                  "relative px-4 py-2 text-sm font-medium rounded-lg transition-colors",
                   pathname === link.href
-                    ? "text-foreground"
-                    : "text-foreground/60"
+                    ? "text-cyan-400"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
                 )}
               >
                 {link.label}
+                {pathname === link.href && (
+                  <motion.div
+                    layoutId="navbar-active"
+                    className="absolute inset-0 rounded-lg bg-slate-800/60 border border-slate-700/50 -z-10"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
               </Link>
             ))}
           </nav>
@@ -48,6 +61,6 @@ export function Navbar() {
           <ConnectButton />
         </div>
       </div>
-    </header>
+    </motion.header>
   )
 }

@@ -10,37 +10,8 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Loader2, CheckCircle2, XCircle, ExternalLink } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 
-/**
- * Transaction Pending / Success / Error modal.
- *
- * Displays real-time feedback for every blockchain interaction.
- * When a transaction is submitted, the modal shows the pending state
- * with a spinner and the transaction hash linked to BaseScan.
- *
- * WHY WEB3 TRANSACTIONS CAN FAIL EVEN WHEN CODE IS CORRECT:
- *
- * 1. User rejection — The user clicks "Reject" in their wallet popup.
- *    This is the most common failure and is expected UX, not a bug.
- *
- * 2. Out of gas — The transaction requires more gas than the user
- *    has available in native token (ETH on Base Sepolia). The EVM
- *    reverts the transaction but still deducts gas for work done.
- *
- * 3. Network congestion — During high traffic, gas prices spike and
- *    the wallet may refuse to broadcast if the fee cap is too low.
- *
- * 4. Nonce mismatch — If the user submits multiple transactions rapidly
- *    from another device or tab, the sequence number can get out of
- *    sync and the node rejects the second transaction.
- *
- * 5. Contract revert — The smart contract itself can reject the call
- *    (e.g. trying to withdraw more than staked). This is valid code
- *    behaviour, not a frontend bug.
- *
- * Because of these realities, every write operation must handle both
- * success and error paths gracefully with user-facing feedback.
- */
 export function TxModal() {
   const { isOpen, title, description, hash, status, close, reset } =
     useTxModalStore()
@@ -60,28 +31,51 @@ export function TxModal() {
         }
       }}
     >
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader className="gap-2">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-            {isPending && (
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            )}
-            {isSuccess && (
-              <CheckCircle2 className="h-6 w-6 text-green-500" />
-            )}
-            {isError && (
-              <XCircle className="h-6 w-6 text-destructive" />
-            )}
+      <DialogContent className="sm:max-w-md bg-slate-900/95 backdrop-blur-xl border-slate-700/50 text-slate-100">
+        <DialogHeader className="gap-3">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-800/80 border border-slate-700/50">
+            <AnimatePresence mode="wait">
+              {isPending && (
+                <motion.div
+                  key="pending"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                >
+                  <Loader2 className="h-7 w-7 animate-spin text-cyan-400" />
+                </motion.div>
+              )}
+              {isSuccess && (
+                <motion.div
+                  key="success"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                >
+                  <CheckCircle2 className="h-7 w-7 text-emerald-400" />
+                </motion.div>
+              )}
+              {isError && (
+                <motion.div
+                  key="error"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                >
+                  <XCircle className="h-7 w-7 text-red-400" />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          <DialogTitle className="text-center">
+          <DialogTitle className="text-center text-slate-100">
             {isPending && "Transaction Pending"}
             {isSuccess && "Transaction Confirmed"}
             {isError && "Transaction Failed"}
             {!status && title}
           </DialogTitle>
 
-          <DialogDescription className="text-center">
+          <DialogDescription className="text-center text-slate-400">
             {isPending && description}
             {isSuccess && "Your transaction has been confirmed on-chain."}
             {isError && "Something went wrong. Check the details below and try again."}
@@ -90,28 +84,32 @@ export function TxModal() {
         </DialogHeader>
 
         {hash && (
-          <div className="rounded-lg border bg-muted/50 p-3 space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-4 space-y-2"
+          >
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
               Transaction Hash
             </p>
             <a
               href={`https://sepolia.basescan.org/tx/${hash}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm font-mono text-foreground hover:text-primary transition-colors"
+              className="flex items-center gap-2 text-sm font-mono text-cyan-400 hover:text-cyan-300 transition-colors"
             >
               <span className="truncate">
                 {hash.slice(0, 14)}…{hash.slice(-12)}
               </span>
               <ExternalLink className="h-3.5 w-3.5 shrink-0" />
             </a>
-          </div>
+          </motion.div>
         )}
 
         {isError && (
-          <p className="text-xs text-center text-muted-foreground">
+          <p className="text-xs text-center text-slate-500">
             Common causes: user rejection, insufficient gas, network congestion,
-            or a contract revert (e.g. withdrawing more than your balance).
+            or a contract revert.
           </p>
         )}
 
@@ -122,7 +120,7 @@ export function TxModal() {
                 close()
                 reset()
               }}
-              className="min-w-[120px]"
+              className="min-w-[120px] bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white border-0"
             >
               Close
             </Button>
