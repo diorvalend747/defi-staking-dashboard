@@ -87,8 +87,14 @@ router.get("/history/:address", verifyJWT, async (req: Request, res: Response) =
     where: { userAddress: address.toLowerCase() },
   });
 
+  // Prisma returns blockNumber as BigInt, but JSON.stringify cannot
+  // serialize BigInt natively. We map each event to a plain object
+  // with blockNumber converted to a string before sending.
   res.json({
-    events,
+    events: events.map((e) => ({
+      ...e,
+      blockNumber: e.blockNumber.toString(),
+    })),
     pagination: {
       total,
       limit,

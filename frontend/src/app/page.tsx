@@ -3,6 +3,8 @@
 import { useState } from "react"
 import { useAccount, useReadContract, useWriteContract } from "wagmi"
 import { parseEther, formatEther } from "viem"
+import { toast } from "sonner"
+import { useMounted } from "@/hooks/use-mounted"
 
 import { stakingPoolContract, mockTokenContract } from "@/lib/wagmi"
 import { useApiQuery } from "@/hooks/use-api"
@@ -22,13 +24,19 @@ import { TransactionHistory } from "@/components/TransactionHistory"
  * Displays protocol stats, the user's staking position, and forms for
  * staking, withdrawing, and claiming rewards. All smart-contract
  * interactions are powered by wagmi hooks.
+ *
+ * RESPONSIVE DESIGN NOTES:
+ * - Stats cards stack 1-col on mobile, 2-col on tablet, 3-col on desktop.
+ * - Stake / Manage forms stack vertically on mobile, side-by-side on desktop.
+ * - Button groups switch from horizontal to vertical on small screens.
+ * - All inputs use full-width containers with appropriate touch targets.
  */
 export default function DashboardPage() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       <TxModal />
       <StatsSection />
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
         <StakeForm />
         <UnstakeClaimSection />
       </div>
@@ -42,6 +50,7 @@ export default function DashboardPage() {
 /* ------------------------------------------------------------------ */
 
 function StatsSection() {
+  const mounted = useMounted()
   const { address, isConnected } = useAccount()
 
   // Fetch TVL from the backend API.
@@ -73,7 +82,7 @@ function StatsSection() {
   })
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
       <StatCard
         title="Total Value Locked"
         value={stats?.tvl ? `$${Number(stats.tvl).toLocaleString()}` : "—"}
@@ -83,26 +92,30 @@ function StatsSection() {
       <StatCard
         title="Your Staked Amount"
         value={
-          isConnected
-            ? stakedBalance !== undefined && stakedBalance !== null
-              ? `${formatEther(stakedBalance as bigint)} TOKEN`
-              : "0 TOKEN"
-            : "Connect wallet"
+          !mounted
+            ? ""
+            : isConnected
+              ? stakedBalance !== undefined && stakedBalance !== null
+                ? `${formatEther(stakedBalance as bigint)} TOKEN`
+                : "0 TOKEN"
+              : "Connect wallet"
         }
         description="Tokens you have deposited"
-        isLoading={stakedLoading}
+        isLoading={!mounted || stakedLoading}
       />
       <StatCard
         title="Pending Rewards"
         value={
-          isConnected
-            ? pendingRewards !== undefined && pendingRewards !== null
-              ? `${formatEther(pendingRewards as bigint)} TOKEN`
-              : "0 TOKEN"
-            : "Connect wallet"
+          !mounted
+            ? ""
+            : isConnected
+              ? pendingRewards !== undefined && pendingRewards !== null
+                ? `${formatEther(pendingRewards as bigint)} TOKEN`
+                : "0 TOKEN"
+              : "Connect wallet"
         }
         description="Rewards accrued this period"
-        isLoading={rewardsLoading}
+        isLoading={!mounted || rewardsLoading}
       />
     </div>
   )
@@ -143,6 +156,7 @@ function StatCard({
 /* ------------------------------------------------------------------ */
 
 function StakeForm() {
+  const mounted = useMounted()
   const { address, isConnected } = useAccount()
   const { open, setTx } = useTxModalStore()
   const [amount, setAmount] = useState("")
@@ -197,10 +211,16 @@ function StakeForm() {
       {
         onSuccess: (hash) => {
           setTx(hash, "pending")
+          toast.success("Approval submitted", {
+            description: "Your approval transaction is being confirmed on-chain.",
+          })
         },
         onError: (err) => {
           setTx(null, "error")
           console.error("Approve failed:", err)
+          toast.error("Approval failed", {
+            description: getErrorMessage(err),
+          })
         },
       }
     )
@@ -221,10 +241,16 @@ function StakeForm() {
           setTx(hash, "pending")
           setAmount("")
           refetchAllowance()
+          toast.success("Stake submitted", {
+            description: `${amount} TOKEN is being deposited into the pool.`,
+          })
         },
         onError: (err) => {
           setTx(null, "error")
           console.error("Stake failed:", err)
+          toast.error("Stake failed", {
+            description: getErrorMessage(err),
+          })
         },
       }
     )
@@ -247,15 +273,16 @@ function StakeForm() {
             placeholder="0.0"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            disabled={!isConnected || isApprovePending || isStakePending}
+            disabled={!mounted || !isConnected || isApprovePending || isStakePending}
           />
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <Button
             variant="outline"
             className="flex-1"
             disabled={
+              !mounted ||
               !isConnected ||
               !amount ||
               parsedAmount <= 0n ||
@@ -271,6 +298,7 @@ function StakeForm() {
           <Button
             className="flex-1"
             disabled={
+              !mounted ||
               !isConnected ||
               !amount ||
               parsedAmount <= 0n ||
@@ -284,13 +312,13 @@ function StakeForm() {
           </Button>
         </div>
 
-        {!isConnected && (
+        {mounted && !isConnected && (
           <p className="text-xs text-muted-foreground">
             Connect your wallet to stake tokens.
           </p>
         )}
 
-        {isConnected && hasAllowance && amount && (
+        {mounted && isConnected && hasAllowance && amount && (
           <p className="text-xs text-green-600">
             Allowance confirmed. You can now stake.
           </p>
@@ -305,6 +333,7 @@ function StakeForm() {
 /* ------------------------------------------------------------------ */
 
 function UnstakeClaimSection() {
+  const mounted = useMounted()
   const { address, isConnected } = useAccount()
   const { open, setTx } = useTxModalStore()
   const [withdrawAmount, setWithdrawAmount] = useState("")
@@ -340,10 +369,16 @@ function UnstakeClaimSection() {
         onSuccess: (hash) => {
           setTx(hash, "pending")
           setWithdrawAmount("")
+          toast.success("Withdraw submitted", {
+            description: `${withdrawAmount} TOKEN is being returned to your wallet.`,
+          })
         },
         onError: (err) => {
           setTx(null, "error")
           console.error("Withdraw failed:", err)
+          toast.error("Withdraw failed", {
+            description: getErrorMessage(err),
+          })
         },
       }
     )
@@ -360,10 +395,16 @@ function UnstakeClaimSection() {
       {
         onSuccess: (hash) => {
           setTx(hash, "pending")
+          toast.success("Claim submitted", {
+            description: "Your rewards are being sent to your wallet.",
+          })
         },
         onError: (err) => {
           setTx(null, "error")
           console.error("Claim failed:", err)
+          toast.error("Claim failed", {
+            description: getErrorMessage(err),
+          })
         },
       }
     )
@@ -385,24 +426,26 @@ function UnstakeClaimSection() {
         {/* Withdraw */}
         <div className="space-y-2">
           <Label htmlFor="withdraw-amount">Withdraw Amount</Label>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <Input
               id="withdraw-amount"
               type="number"
               placeholder="0.0"
               value={withdrawAmount}
               onChange={(e) => setWithdrawAmount(e.target.value)}
-              disabled={!isConnected || isWithdrawPending}
+              disabled={!mounted || !isConnected || isWithdrawPending}
+              className="flex-1"
             />
             <Button
               variant="outline"
-              disabled={!isConnected || !canWithdraw || isWithdrawPending}
+              disabled={!mounted || !isConnected || !canWithdraw || isWithdrawPending}
               onClick={handleWithdraw}
+              className="sm:w-auto w-full"
             >
               {isWithdrawPending ? "Withdrawing…" : "Withdraw"}
             </Button>
           </div>
-          {isConnected && stakedBalance !== undefined && (
+          {mounted && isConnected && stakedBalance !== undefined && (
             <p className="text-xs text-muted-foreground">
               Staked balance: {formatEther(stakedBalance as bigint)} TOKEN
             </p>
@@ -413,7 +456,7 @@ function UnstakeClaimSection() {
         <div className="border-t" />
 
         {/* Claim Rewards */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <p className="text-sm font-medium">Claim Rewards</p>
             <p className="text-xs text-muted-foreground">
@@ -421,8 +464,9 @@ function UnstakeClaimSection() {
             </p>
           </div>
           <Button
-            disabled={!isConnected || isClaimPending}
+            disabled={!mounted || !isConnected || isClaimPending}
             onClick={handleClaim}
+            className="sm:w-auto w-full"
           >
             {isClaimPending ? "Claiming…" : "Claim Rewards"}
           </Button>
@@ -430,4 +474,52 @@ function UnstakeClaimSection() {
       </CardContent>
     </Card>
   )
+}
+
+/* ------------------------------------------------------------------ */
+/*  Error helper                                                       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Extract a human-readable message from a wagmi/viem error object.
+ *
+ * WHY WEB3 TRANSACTIONS CAN FAIL EVEN WHEN CODE IS CORRECT:
+ *
+ * 1. User rejection — The user clicks "Reject" in MetaMask. This is the
+ *    most common cause and is completely normal UX, not a bug.
+ *
+ * 2. Out of gas — The user doesn't have enough ETH (native token) to pay
+ *    for the transaction's computational cost. Even failed transactions
+ *    consume gas, so the wallet may refuse to broadcast.
+ *
+ * 3. Network congestion — During high traffic, gas prices spike. If the
+ *    user's max fee is too low, validators ignore the transaction.
+ *
+ * 4. Nonce mismatch — If the user submits txs from multiple tabs/devices,
+ *    the transaction sequence number gets out of sync and nodes reject it.
+ *
+ * 5. Contract revert — The smart contract itself throws (e.g. withdrawing
+ *    more than staked). This is expected contract behaviour, not a bug.
+ *
+ * Because any of these can happen at any time, every write call must
+ * gracefully handle failures and show actionable feedback.
+ */
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) {
+    const msg = err.message
+    if (msg.includes("User rejected") || msg.includes("rejected")) {
+      return "You rejected the transaction in your wallet."
+    }
+    if (msg.includes("insufficient funds")) {
+      return "Insufficient ETH for gas fees. Add Base Sepolia ETH to your wallet."
+    }
+    if (msg.includes("nonce")) {
+      return "Transaction nonce mismatch. Try refreshing the page."
+    }
+    if (msg.includes("revert") || msg.includes("execution reverted")) {
+      return "The contract rejected this transaction. Check your input and try again."
+    }
+    return msg
+  }
+  return "An unexpected error occurred. Please try again."
 }

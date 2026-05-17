@@ -5,6 +5,8 @@ import { useAccount } from "wagmi"
 import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { formatEther } from "viem"
+import { ScrollText, Loader2 } from "lucide-react"
+import { useMounted } from "@/hooks/use-mounted"
 
 import { api } from "@/hooks/use-api"
 import { useAuth } from "@/hooks/use-auth"
@@ -56,6 +58,7 @@ const ITEMS_PER_PAGE = 10
  *     and keep listening even after the component is unmounted.
  */
 export function TransactionHistory() {
+  const mounted = useMounted()
   const { address, isConnected } = useAccount()
   const { isAuthenticated, authenticate } = useAuth()
 
@@ -72,7 +75,7 @@ export function TransactionHistory() {
     data: history,
     isLoading,
     error,
-  } = useQuery<Transaction[]>({
+  } = useQuery<{ events: Transaction[]; pagination: { total: number; limit: number; offset: number; hasMore: boolean } }>({
     queryKey: ["history", address],
     queryFn: async () => {
       const res = await api.get(`/api/history/${address}`)
@@ -145,8 +148,18 @@ export function TransactionHistory() {
       }
     }
 
-    ws.onerror = (err) => {
-      console.error("WebSocket error:", err)
+    ws.onerror = () => {
+      // WebSocket connection failures are usually caused by the backend
+      // not having a WebSocket server running, or a network issue.
+      // We log silently rather than throwing because this is a
+      // best-effort live update feature — the REST polling still works.
+      console.warn("[TransactionHistory] WebSocket connection failed. Live updates unavailable.")
+    }
+
+    ws.onclose = (event) => {
+      if (!event.wasClean) {
+        console.warn("[TransactionHistory] WebSocket closed unexpectedly.")
+      }
     }
 
     // ----------------------------------------------------------------
@@ -164,7 +177,7 @@ export function TransactionHistory() {
   // ------------------------------------------------------------------
   // 3. Merge history + live events and paginate
   // ------------------------------------------------------------------
-  const allTransactions = [...liveEvents, ...(history || [])]
+  const allTransactions = [...liveEvents, ...(history?.events || [])]
   const totalPages = Math.max(1, Math.ceil(allTransactions.length / ITEMS_PER_PAGE))
   const paginated = allTransactions.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
@@ -187,7 +200,11 @@ export function TransactionHistory() {
         <CardTitle>Transaction History</CardTitle>
       </CardHeader>
       <CardContent>
-        {!isConnected ? (
+        {!mounted ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : !isConnected ? (
           <p className="text-sm text-muted-foreground">
             Connect your wallet to view transaction history.
           </p>
@@ -231,11 +248,8 @@ export function TransactionHistory() {
                 <TableBody>
                   {paginated.length === 0 ? (
                     <TableRow>
-                      <TableCell
-                        colSpan={5}
-                        className="text-center text-muted-foreground"
-                      >
-                        No transactions found.
+                      <TableCell colSpan={5} className="py-12">
+                        <EmptyState />
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -316,6 +330,29 @@ function LoadingSkeleton() {
           ))}
         </div>
       ))}
+    </div>
+  )
+}
+
+/**
+ * Empty state illustration shown when the user has no transaction history.
+ *
+ * Uses a large centered icon and friendly copy to avoid a bare "No data"
+ * message. This improves perceived polish and guides the user toward
+ * their first staking action.
+ */
+function EmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center text-center space-y-3 py-8">
+      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+        <ScrollText className="h-8 w-8 text-muted-foreground" />
+      </div>
+      <div>
+        <p className="text-sm font-medium text-foreground">No transactions yet</p>
+        <p className="text-xs text-muted-foreground max-w-[260px] mx-auto mt-1">
+          Stake, withdraw, or claim rewards to see your on-chain activity here.
+        </p>
+      </div>
     </div>
   )
 }

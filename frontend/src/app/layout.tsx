@@ -4,6 +4,7 @@ import "./globals.css"
 import { cn } from "@/lib/utils"
 import { Providers } from "./providers"
 import { Navbar } from "@/components/navbar"
+import { Footer } from "@/components/footer"
 import { Toaster } from "sonner"
 
 const geistSans = localFont({
@@ -31,11 +32,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("font-sans")}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
         <Providers>
           <Navbar />
-          <main className="container py-6">{children}</main>
+          <main className="container py-6 flex-1">{children}</main>
+          <Footer />
           <Toaster position="bottom-right" richColors />
         </Providers>
       </body>
