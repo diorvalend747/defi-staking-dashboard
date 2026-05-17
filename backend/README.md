@@ -43,16 +43,16 @@ npm run dev:watch
 npm run dev
 ```
 
-The server will start on `http://localhost:3001`.
+The server will start on `http://localhost:3003`.
 
 ---
 
 ## 📡 API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET    | `/`      | Health check — returns `{ status: "ok" }` |
-| GET    | `/health` | Detailed health check with timestamp |
+| Method | Endpoint  | Description                               |
+| ------ | --------- | ----------------------------------------- |
+| GET    | `/`       | Health check — returns `{ status: "ok" }` |
+| GET    | `/health` | Detailed health check with timestamp      |
 
 ---
 
@@ -63,11 +63,13 @@ The server will start on `http://localhost:3001`.
 Prisma is an ORM (Object-Relational Mapper) — a tool that lets you write database code using JavaScript/TypeScript objects instead of raw SQL.
 
 **Without Prisma (raw SQL):**
+
 ```sql
 SELECT id, wallet_address, created_at FROM users WHERE wallet_address = '0xabc...';
 ```
 
 **With Prisma:**
+
 ```typescript
 const user = await prisma.user.findUnique({
   where: { walletAddress: "0xabc..." },
@@ -75,6 +77,7 @@ const user = await prisma.user.findUnique({
 ```
 
 Prisma gives you:
+
 - **Type safety** — If you mistype a field, TypeScript catches it before runtime
 - **Auto-completion** — Your IDE knows every table and column
 - **Migrations** — Change your schema, run `prisma migrate dev`, database updates automatically
@@ -101,7 +104,7 @@ Socket.io is configured on the same port as the HTTP server. The frontend can co
 
 ```javascript
 import { io } from "socket.io-client";
-const socket = io("http://localhost:3001");
+const socket = io("http://localhost:3003");
 
 socket.on("connect", () => {
   console.log("Connected to backend");
@@ -136,14 +139,14 @@ backend/
 
 ## 🛠️ Scripts
 
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Run server once with ts-node |
-| `npm run dev:watch` | Run with hot reload (nodemon) |
-| `npm run build` | Compile TypeScript to `dist/` |
-| `npm start` | Run compiled production build |
-| `npm run db:migrate` | Run Prisma migrations |
-| `npm run db:studio` | Open Prisma Studio GUI |
+| Script               | Description                   |
+| -------------------- | ----------------------------- |
+| `npm run dev`        | Run server once with ts-node  |
+| `npm run dev:watch`  | Run with hot reload (nodemon) |
+| `npm run build`      | Compile TypeScript to `dist/` |
+| `npm start`          | Run compiled production build |
+| `npm run db:migrate` | Run Prisma migrations         |
+| `npm run db:studio`  | Open Prisma Studio GUI        |
 
 ---
 

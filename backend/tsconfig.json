@@ -3,7 +3,7 @@
     /* Target modern JavaScript */
     "target": "ES2022",
     "module": "commonjs",
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "DOM"],
 
     /* Output settings */
     "outDir": "./dist",

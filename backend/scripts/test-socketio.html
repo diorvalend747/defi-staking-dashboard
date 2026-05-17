@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Socket.io Test — DeFi Staking Dashboard</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 700px;
+        margin: 40px auto;
+        padding: 0 20px;
+      }
+      h1 {
+        color: #333;
+      }
+      .card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 16px;
+        margin: 16px 0;
+      }
+      .log {
+        background: #f5f5f5;
+        padding: 12px;
+        border-radius: 6px;
+        font-family: monospace;
+        font-size: 13px;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+      .log div {
+        margin: 2px 0;
+      }
+      .connected {
+        color: green;
+      }
+      .disconnected {
+        color: red;
+      }
+      .event {
+        color: #0066cc;
+      }
+      button {
+        padding: 8px 16px;
+        margin: 4px;
+        cursor: pointer;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+      }
+      input {
+        padding: 8px;
+        width: 300px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🔌 Socket.io Test Page</h1>
+    <p>
+      Open this file in your browser (double-click it) while the backend is
+      running.
+    </p>
+
+    <div class="card">
+      <h3>Connection</h3>
+      <p>Status: <span id="status" class="disconnected">Disconnected</span></p>
+      <button onclick="connect()">Connect</button>
+      <button onclick="disconnect()">Disconnect</button>
+    </div>
+
+    <div class="card">
+      <h3>Subscribe to Wallet Room</h3>
+      <input
+        id="wallet"
+        type="text"
+        placeholder="0xYourWalletAddress"
+        value="0x1234567890123456789012345678901234567890"
+      />
+      <br /><br />
+      <button onclick="subscribe()">Subscribe</button>
+      <button onclick="unsubscribe()">Unsubscribe</button>
+    </div>
+
+    <div class="card">
+      <h3>Event Log</h3>
+      <div id="log" class="log"></div>
+      <button onclick="clearLog()">Clear</button>
+    </div>
+
+    <!-- Socket.io client library -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+      const logEl = document.getElementById("log");
+      const statusEl = document.getElementById("status");
+      let socket = null;
+
+      function addLog(msg, type = "") {
+        const div = document.createElement("div");
+        const time = new Date().toLocaleTimeString();
+        div.className = type;
+        div.textContent = `[${time}] ${msg}`;
+        logEl.appendChild(div);
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function connect() {
+        // Change this URL if your backend runs on a different port
+        socket = io("http://localhost:3003", {
+          // Show connection errors instead of failing silently
+          transports: ["websocket", "polling"],
+          timeout: 5000,
+        });
+
+        socket.on("connect", () => {
+          statusEl.textContent = "Connected (" + socket.id + ")";
+          statusEl.className = "connected";
+          addLog("Connected: " + socket.id, "connected");
+        });
+
+        socket.on("disconnect", (reason) => {
+          statusEl.textContent = "Disconnected";
+          statusEl.className = "disconnected";
+          addLog("Disconnected: " + reason, "disconnected");
+        });
+
+        // THIS is the key handler — it shows WHY connection failed
+        socket.on("connect_error", (err) => {
+          statusEl.textContent = "Connection Failed";
+          statusEl.className = "disconnected";
+          addLog("Connect Error: " + err.message, "disconnected");
+          console.error("Socket.io connect_error:", err);
+        });
+
+        socket.on("subscribed", (data) => {
+          addLog("Subscribed to room: " + data.room, "event");
+        });
+
+        // This is the event broadcast by the blockchain listener!
+        socket.on("stake:event", (payload) => {
+          addLog("📡 stake:event → " + JSON.stringify(payload), "event");
+        });
+
+        socket.on("error", (err) => {
+          addLog("Error: " + JSON.stringify(err), "disconnected");
+        });
+      }
+
+      function disconnect() {
+        if (socket) {
+          socket.disconnect();
+          socket = null;
+        }
+      }
+
+      function subscribe() {
+        if (!socket || !socket.connected) {
+          addLog("Not connected! Click Connect first.", "disconnected");
+          return;
+        }
+        const wallet = document.getElementById("wallet").value;
+        socket.emit("subscribe", wallet);
+        addLog("Sent subscribe: " + wallet);
+      }
+
+      function unsubscribe() {
+        if (!socket || !socket.connected) return;
+        const wallet = document.getElementById("wallet").value;
+        socket.emit("unsubscribe", wallet);
+        addLog("Sent unsubscribe: " + wallet);
+      }
+
+      function clearLog() {
+        logEl.innerHTML = "";
+      }
+
+      // Auto-connect on page load
+      connect();
+    </script>
+  </body>
+</html>
